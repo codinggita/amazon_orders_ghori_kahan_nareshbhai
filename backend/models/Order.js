@@ -1,65 +1,50 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  orderId: {
+  OrderID: {
     type: String,
     required: true,
     unique: true
   },
-  customerName: {
+  OrderDate: String,
+  CustomerID: String,
+  CustomerName: {
     type: String,
     required: true
   },
-  productName: {
+  ProductID: String,
+  ProductName: {
     type: String,
     required: true
   },
-  items: [{
-    productId: String,
-    name: String,
-    quantity: Number,
-    price: Number
-  }],
-  quantity: {
-    type: Number,
-    required: true,
-    default: 1
-  },
-  totalAmount: {
-    type: Number,
+  Category: String,
+  Brand: String,
+  Quantity: String,
+  UnitPrice: String,
+  Discount: String,
+  Tax: String,
+  ShippingCost: String,
+  TotalAmount: {
+    type: String,
     required: true
   },
-  status: {
+  PaymentMethod: String,
+  OrderStatus: {
     type: String,
-    enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Archived'],
     default: 'Pending'
   },
-  statusHistory: [{
-    status: String,
-    changedAt: {
-      type: Date,
-      default: Date.now
-    },
-    comment: String
-  }],
+  City: String,
+  State: String,
+  Country: String,
+  SellerID: String,
   isArchived: {
     type: Boolean,
     default: false
-  },
-  orderDate: {
-    type: Date,
-    default: Date.now
   }
 }, {
-  timestamps: true
-});
-
-// Middleware to track status history before saving
-orderSchema.pre('save', function(next) {
-  if (this.isModified('status')) {
-    this.statusHistory.push({ status: this.status, changedAt: new Date() });
-  }
-  next();
+  collection: 'uerdata',
+  timestamps: true,
+  strict: false
 });
 
 module.exports = mongoose.model('Order', orderSchema);

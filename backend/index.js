@@ -16,7 +16,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
+const searchRoutes = require('./routes/searchRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+app.use('/api/v1/orders/search', searchRoutes);
 app.use('/api/v1/orders', orderRoutes);
 
 // MongoDB Connection

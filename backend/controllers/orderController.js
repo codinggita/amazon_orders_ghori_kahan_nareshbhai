@@ -26,9 +26,9 @@ exports.getAllOrders = async (req, res) => {
 // GET /api/v1/orders/:orderId - Fetch order details
 exports.getOrderById = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderId: req.params.orderId });
+    const order = await Order.findOne({ OrderID: req.params.orderId });
     if (!order) {
-      return res.status(44), res.status(404).json({ success: false, message: 'Order not found' });
+      return res.status(404).json({ success: false, message: 'Order not found' });
     }
     res.status(200).json({ success: true, data: order });
   } catch (error) {
@@ -50,7 +50,7 @@ exports.createOrder = async (req, res) => {
 exports.replaceOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { orderId: req.params.orderId },
+      { OrderID: req.params.orderId },
       req.body,
       { new: true, runValidators: true, overwrite: true }
     );
@@ -67,7 +67,7 @@ exports.replaceOrder = async (req, res) => {
 exports.updateOrderFields = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { orderId: req.params.orderId },
+      { OrderID: req.params.orderId },
       req.body,
       { new: true, runValidators: true }
     );
@@ -83,7 +83,7 @@ exports.updateOrderFields = async (req, res) => {
 // DELETE /api/v1/orders/:orderId - Delete an order
 exports.deleteOrder = async (req, res) => {
   try {
-    const order = await Order.findOneAndDelete({ orderId: req.params.orderId });
+    const order = await Order.findOneAndDelete({ OrderID: req.params.orderId });
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
@@ -96,7 +96,7 @@ exports.deleteOrder = async (req, res) => {
 // GET /api/v1/orders/:orderId/exists - Check whether order exists
 exports.checkOrderExists = async (req, res) => {
   try {
-    const exists = await Order.exists({ orderId: req.params.orderId });
+    const exists = await Order.exists({ OrderID: req.params.orderId });
     res.status(200).json({ success: true, exists: !!exists });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -106,7 +106,7 @@ exports.checkOrderExists = async (req, res) => {
 // GET /api/v1/orders/:orderId/summary - Fetch summarized order details
 exports.getOrderSummary = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderId: req.params.orderId }).select('orderId customerName totalAmount status orderDate');
+    const order = await Order.findOne({ OrderID: req.params.orderId }).select('OrderID CustomerName TotalAmount OrderStatus OrderDate');
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
     res.status(200).json({ success: true, data: order });
   } catch (error) {
@@ -117,9 +117,9 @@ exports.getOrderSummary = async (req, res) => {
 // GET /api/v1/orders/:orderId/items - Fetch items of an order
 exports.getOrderItems = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderId: req.params.orderId }).select('items');
+    const order = await Order.findOne({ OrderID: req.params.orderId }).select('ProductID ProductName Quantity UnitPrice');
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    res.status(200).json({ success: true, data: order.items });
+    res.status(200).json({ success: true, data: order });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -128,9 +128,9 @@ exports.getOrderItems = async (req, res) => {
 // GET /api/v1/orders/:orderId/history - Fetch order status history
 exports.getOrderHistory = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderId: req.params.orderId }).select('statusHistory');
+    const order = await Order.findOne({ OrderID: req.params.orderId }).select('OrderID OrderStatus OrderDate');
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-    res.status(200).json({ success: true, data: order.statusHistory });
+    res.status(200).json({ success: true, data: [{ status: order.OrderStatus, date: order.OrderDate }] });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -140,8 +140,8 @@ exports.getOrderHistory = async (req, res) => {
 exports.archiveOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { orderId: req.params.orderId },
-      { isArchived: true, status: 'Archived' },
+      { OrderID: req.params.orderId },
+      { isArchived: true, OrderStatus: 'Archived' },
       { new: true }
     );
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -155,8 +155,8 @@ exports.archiveOrder = async (req, res) => {
 exports.restoreOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { orderId: req.params.orderId },
-      { isArchived: false, status: 'Pending' },
+      { OrderID: req.params.orderId },
+      { isArchived: false, OrderStatus: 'Pending' },
       { new: true }
     );
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -170,8 +170,8 @@ exports.restoreOrder = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
   try {
     const order = await Order.findOneAndUpdate(
-      { orderId: req.params.orderId },
-      { status: 'Cancelled' },
+      { OrderID: req.params.orderId },
+      { OrderStatus: 'Cancelled' },
       { new: true }
     );
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
@@ -184,14 +184,13 @@ exports.cancelOrder = async (req, res) => {
 // POST /api/v1/orders/:orderId/duplicate - Duplicate an order
 exports.duplicateOrder = async (req, res) => {
   try {
-    const originalOrder = await Order.findOne({ orderId: req.params.orderId });
+    const originalOrder = await Order.findOne({ OrderID: req.params.orderId });
     if (!originalOrder) return res.status(404).json({ success: false, message: 'Order not found' });
     
     const duplicateData = originalOrder.toObject();
     delete duplicateData._id;
-    duplicateData.orderId = `${duplicateData.orderId}-COPY-${Date.now()}`;
-    duplicateData.status = 'Pending';
-    duplicateData.statusHistory = [];
+    duplicateData.OrderID = `${duplicateData.OrderID}-COPY-${Date.now()}`;
+    duplicateData.OrderStatus = 'Pending';
     
     const newOrder = await Order.create(duplicateData);
     res.status(201).json({ success: true, data: newOrder });
@@ -203,17 +202,18 @@ exports.duplicateOrder = async (req, res) => {
 // GET /api/v1/orders/:orderId/invoice - Generate invoice details
 exports.generateInvoice = async (req, res) => {
   try {
-    const order = await Order.findOne({ orderId: req.params.orderId });
+    const order = await Order.findOne({ OrderID: req.params.orderId });
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
     
+    const total = parseFloat(order.TotalAmount);
     const invoice = {
-      invoiceNumber: `INV-${order.orderId}`,
+      invoiceNumber: `INV-${order.OrderID}`,
       date: new Date(),
-      customer: order.customerName,
-      items: order.items,
-      total: order.totalAmount,
-      tax: (order.totalAmount * 0.1).toFixed(2), // 10% sample tax
-      grandTotal: (order.totalAmount * 1.1).toFixed(2)
+      customer: order.CustomerName,
+      product: order.ProductName,
+      total: total,
+      tax: (total * 0.1).toFixed(2),
+      grandTotal: (total * 1.1).toFixed(2)
     };
     
     res.status(200).json({ success: true, data: invoice });

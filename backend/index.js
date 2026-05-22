@@ -17,8 +17,10 @@ app.use(morgan('dev'));
 
 // Routes
 const searchRoutes = require('./routes/searchRoutes');
+const filterRoutes = require('./routes/filterRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 app.use('/api/v1/orders/search', searchRoutes);
+app.use('/api/v1/orders/filter', filterRoutes);
 app.use('/api/v1/orders', orderRoutes);
 
 // MongoDB Connection

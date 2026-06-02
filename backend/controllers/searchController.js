@@ -231,3 +231,42 @@ exports.getPopularSearches = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// GET /api/v1/orders/search/paged?q=phone&page=1&limit=20
+// Paginated general search across all order fields
+exports.searchPaged = async (req, res) => {
+  try {
+    const q = req.query.q || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    await trackSearch(q);
+    const regex = new RegExp(q, 'i');
+    const query = {
+      $or: [
+        { OrderID: regex },
+        { CustomerName: regex },
+        { ProductName: regex },
+        { Category: regex },
+        { Brand: regex }
+      ]
+    };
+
+    const [data, total] = await Promise.all([
+      Order.find(query).skip(skip).limit(limit),
+      Order.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      data
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

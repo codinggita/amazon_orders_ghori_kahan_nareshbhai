@@ -26,7 +26,18 @@ exports.getAllOrders = async (req, res) => {
 // GET /api/v1/orders/:orderId - Fetch order details
 exports.getOrderById = async (req, res) => {
   try {
-    const order = await Order.findOne({ OrderID: req.params.orderId });
+    const orderIdParam = req.params.orderId;
+    
+    // Build query to match either custom OrderID or MongoDB _id
+    const query = { $or: [{ OrderID: orderIdParam }] };
+    
+    // If the parameter is a valid 24-character hex string (MongoDB ObjectId format), add it to the search query
+    if (orderIdParam.match(/^[0-9a-fA-F]{24}$/)) {
+      query.$or.push({ _id: orderIdParam });
+    }
+
+    const order = await Order.findOne(query);
+    
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }

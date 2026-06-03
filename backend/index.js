@@ -29,12 +29,14 @@ const filterRoutes = require('./routes/filterRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const paginationRoutes = require('./routes/paginationRoutes');
 const sortingRoutes = require('./routes/sortingRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 app.use('/api/v1/orders/search', searchRoutes);
 app.use('/api/v1/orders/filter', filterRoutes);
-app.use('/api/v1/orders/sort', sortingRoutes);    // Sorting routes
-app.use('/api/v1/orders', paginationRoutes);       // Pagination routes
-app.use('/api/v1/orders', orderRoutes);            // Core CRUD routes
+app.use('/api/v1/orders/sort', sortingRoutes);       // Sorting routes
+app.use('/api/v1/orders', paginationRoutes);          // Pagination routes
+app.use('/api/v1/orders', orderRoutes);               // Core CRUD routes
+app.use('/api/v1/analytics', analyticsRoutes);        // Analytics routes
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

@@ -13,12 +13,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Custom Request Logger
+// Custom Request Logger — also feeds /admin/system/logs
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[API] ${req.method} ${req.originalUrl} - Status: ${res.statusCode} (${duration}ms)`);
+    const entry = { method: req.method, path: req.originalUrl, statusCode: res.statusCode, durationMs: duration };
+    console.log(`[API] ${entry.method} ${entry.path} - Status: ${entry.statusCode} (${entry.durationMs}ms)`);
+    appendLog(entry);
   });
   next();
 });
@@ -32,8 +34,10 @@ const sortingRoutes = require('./routes/sortingRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
-const authRoutes     = require('./routes/authRoutes');
+const authRoutes      = require('./routes/authRoutes');
+const adminRoutes     = require('./routes/adminRoutes');
 const { performanceMiddleware } = require('./controllers/statsController');
+const { appendLog }   = require('./controllers/adminController');
 
 // Performance tracking middleware — must be before all routes
 app.use(performanceMiddleware);
@@ -47,6 +51,7 @@ app.use('/api/v1/analytics', analyticsRoutes);        // Analytics routes
 app.use('/api/v1/stats', statsRoutes);                // Statistics routes
 app.use('/api/v1/shipping', shippingRoutes);           // Shipping & Delivery routes
 app.use('/api/v1/auth',     authRoutes);               // Authentication routes
+app.use('/api/v1/admin',    adminRoutes);              // Admin routes
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

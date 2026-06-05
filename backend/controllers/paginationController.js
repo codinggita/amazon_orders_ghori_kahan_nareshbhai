@@ -6,7 +6,7 @@ const paginate = async (query, page, limit) => {
   const [data, total] = await Promise.all([
     Order.find(query).skip(skip).limit(limit),
     Order.countDocuments(query)
-  ]);
+  ]);  
   return { data, total, page, pages: Math.ceil(total / limit), count: data.length };
 };
 

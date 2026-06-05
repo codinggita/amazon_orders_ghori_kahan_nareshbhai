@@ -30,6 +30,11 @@ const orderRoutes = require('./routes/orderRoutes');
 const paginationRoutes = require('./routes/paginationRoutes');
 const sortingRoutes = require('./routes/sortingRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const statsRoutes = require('./routes/statsRoutes');
+const { performanceMiddleware } = require('./controllers/statsController');
+
+// Performance tracking middleware — must be before all routes
+app.use(performanceMiddleware);
 
 app.use('/api/v1/orders/search', searchRoutes);
 app.use('/api/v1/orders/filter', filterRoutes);
@@ -37,6 +42,7 @@ app.use('/api/v1/orders/sort', sortingRoutes);       // Sorting routes
 app.use('/api/v1/orders', paginationRoutes);          // Pagination routes
 app.use('/api/v1/orders', orderRoutes);               // Core CRUD routes
 app.use('/api/v1/analytics', analyticsRoutes);        // Analytics routes
+app.use('/api/v1/stats', statsRoutes);                // Statistics routes
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

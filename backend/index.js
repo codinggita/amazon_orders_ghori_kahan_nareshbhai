@@ -29,6 +29,7 @@ app.use((req, res, next) => {
 const searchRoutes = require('./routes/searchRoutes');
 const filterRoutes = require('./routes/filterRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const bulkRoutes  = require('./routes/bulkRoutes');
 const paginationRoutes = require('./routes/paginationRoutes');
 const sortingRoutes = require('./routes/sortingRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
@@ -45,6 +46,7 @@ app.use(performanceMiddleware);
 app.use('/api/v1/orders/search', searchRoutes);
 app.use('/api/v1/orders/filter', filterRoutes);
 app.use('/api/v1/orders/sort', sortingRoutes);       // Sorting routes
+app.use('/api/v1/orders/bulk',   bulkRoutes);          // Bulk operations routes — MUST be before orderRoutes
 app.use('/api/v1/orders', paginationRoutes);          // Pagination routes
 app.use('/api/v1/orders', orderRoutes);               // Core CRUD routes
 app.use('/api/v1/analytics', analyticsRoutes);        // Analytics routes

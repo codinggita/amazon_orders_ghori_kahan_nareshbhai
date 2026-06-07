@@ -39,6 +39,12 @@ const authRoutes      = require('./routes/authRoutes');
 const adminRoutes     = require('./routes/adminRoutes');
 const errorRoutes     = require('./routes/errorRoutes');
 const validateRoutes  = require('./routes/validateRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
+const trendingRoutes   = require('./routes/trendingRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const activityRoutes   = require('./routes/activityRoutes');
+const dashboardRoutes  = require('./routes/dashboardRoutes');
+const systemRoutes     = require('./routes/systemRoutes');
 const { performanceMiddleware } = require('./controllers/statsController');
 const { appendLog }   = require('./controllers/adminController');
 
@@ -58,6 +64,12 @@ app.use('/api/v1/auth',     authRoutes);               // Authentication routes
 app.use('/api/v1/admin',    adminRoutes);              // Admin routes
 app.use('/api/v1/errors',   errorRoutes);              // Error simulation routes
 app.use('/api/v1/validate', validateRoutes);           // Validation routes
+app.use('/api/v1/recommendations', recommendationRoutes); // Recommendations
+app.use('/api/v1/trending', trendingRoutes);           // Trending products & categories
+app.use('/api/v1/notifications', notificationRoutes);   // Notifications
+app.use('/api/v1/activity', activityRoutes);           // Activity logs
+app.use('/api/v1/dashboard', dashboardRoutes);          // Dashboard metrics
+app.use('/api/v1/system', systemRoutes);               // System info & health checks
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

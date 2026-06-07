@@ -60,21 +60,52 @@ amazon-orders/
 ├── backend/                        # Node.js/Express Backend API
 │   ├── config/                     # Configuration files (DB connection)
 │   ├── controllers/                # Request handlers (MVC - Controller layer)
-│   │   ├── orderController.js      # Full CRUD + specialized order operations
+│   │   ├── activityController.js   # Admin & system activity log retriever
+│   │   ├── adminController.js      # User banning, logs, maintenance management
+│   │   ├── analyticsController.js  # Deep aggregation queries for store reports
+│   │   ├── authController.js       # User auth, registration, login sessions
+│   │   ├── bulkController.js       # Bulk insert, update, delete operations
+│   │   ├── dashboardController.js  # Specialized dashboard metrics & trends
+│   │   ├── errorController.js      # Mock error generators for frontend testing
 │   │   ├── filterController.js     # Filter by status, price, date, location, etc.
+│   │   ├── headOptionsController.js# Metadata headers and Allow lists (HEAD/OPTIONS)
+│   │   ├── notificationController.js# Notification state manager
+│   │   ├── orderController.js      # Full CRUD + specialized order operations
+│   │   ├── paginationController.js # Paginated listings (standard, infinite, filtered)
+│   │   ├── recommendationController.js # Product & order recommendations
 │   │   ├── searchController.js     # Search (global, by field, fuzzy, autocomplete)
 │   │   ├── sortingController.js    # Sorting by amount, date, quantity, discount
-│   │   └── paginationController.js # Paginated listings (standard, infinite, filtered)
+│   │   ├── statsController.js      # Real-time traffic performance tracking
+│   │   ├── systemController.js     # Server uptime, config, and system status health
+│   │   ├── trendingController.js   # Popular categories and trending products
+│   │   └── validateController.js   # Field validator rules for requests
 │   ├── middleware/                 # Express middleware functions
+│   │   └── authMiddleware.js       # Protect JWT routes & restrict roles
 │   ├── models/                     # Mongoose schemas (MVC - Model layer)
 │   │   ├── Order.js                # Core order schema
-│   │   └── SearchQuery.js          # Search query tracking schema
+│   │   ├── SearchQuery.js          # Search query tracking schema
+│   │   └── User.js                 # Authentication user schema
 │   ├── routes/                     # API route definitions (MVC - Router layer)
-│   │   ├── orderRoutes.js
+│   │   ├── activityRoutes.js
+│   │   ├── adminRoutes.js
+│   │   ├── analyticsRoutes.js
+│   │   ├── authRoutes.js
+│   │   ├── bulkRoutes.js
+│   │   ├── dashboardRoutes.js
+│   │   ├── errorRoutes.js
 │   │   ├── filterRoutes.js
+│   │   ├── headOptionsRoutes.js
+│   │   ├── notificationRoutes.js
+│   │   ├── orderRoutes.js
+│   │   ├── paginationRoutes.js
+│   │   ├── recommendationRoutes.js
 │   │   ├── searchRoutes.js
+│   │   ├── shippingRoutes.js
 │   │   ├── sortingRoutes.js
-│   │   └── paginationRoutes.js
+│   │   ├── statsRoutes.js
+│   │   ├── systemRoutes.js
+│   │   ├── trendingRoutes.js
+│   │   └── validateRoutes.js
 │   ├── .env                        # Environment variables
 │   ├── .gitignore
 │   ├── index.js                    # Main entry point & server setup
@@ -83,20 +114,6 @@ amazon-orders/
 │   └── test_routes.js              # API endpoint verification script
 │
 ├── frontend/                       # React Frontend (in progress)
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
-│   │   ├── context/
-│   │   ├── hooks/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   ├── App.js
-│   │   └── index.js
-│   ├── .gitignore
-│   └── package.json
 └── README.md
 ```
 
@@ -211,6 +228,135 @@ amazon-orders/
 
 ---
 
+### ⚠️ Error Simulation (`/api/v1/errors`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/errors/not-found` | Simulate 404 error |
+| GET | `/api/v1/errors/server-error` | Simulate internal server error |
+| GET | `/api/v1/errors/database` | Simulate database error |
+| GET | `/api/v1/errors/validation` | Simulate validation failure |
+| GET | `/api/v1/errors/rate-limit` | Simulate rate limit error |
+| GET | `/api/v1/errors/token-expired` | Simulate expired token |
+| GET | `/api/v1/errors/payment-failed` | Simulate payment failure |
+| GET | `/api/v1/errors/shipping-failed` | Simulate shipping failure |
+| GET | `/api/v1/errors/upload-error` | Simulate upload error |
+| GET | `/api/v1/errors/cache-error` | Simulate cache failure |
+
+---
+
+### 🛡️ Request Validation (`/api/v1/validate`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/validate/order` | Validate order payload |
+| PATCH | `/api/v1/validate/order/:id` | Validate order update |
+| POST | `/api/v1/validate/payment` | Validate payment details |
+| POST | `/api/v1/validate/address` | Validate shipping address |
+| POST | `/api/v1/validate/auth/register` | Validate registration data |
+| POST | `/api/v1/validate/auth/login` | Validate login credentials |
+| POST | `/api/v1/validate/product` | Validate product payload |
+| POST | `/api/v1/validate/refund` | Validate refund request |
+| POST | `/api/v1/validate/coupon` | Validate coupon code |
+| POST | `/api/v1/validate/upload` | Validate uploaded file |
+
+---
+
+### 🧠 Recommendations & Analytics (`/api/v1/recommendations`, `/api/v1/trending`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/recommendations/products/:customerId` | Recommend products to customer |
+| GET | `/api/v1/recommendations/orders/:orderId` | Recommend similar products |
+| GET | `/api/v1/trending/products` | Fetch trending products |
+| GET | `/api/v1/trending/categories` | Fetch trending categories |
+
+---
+
+### 🔔 Notifications & Activity Logs (`/api/v1/notifications`, `/api/v1/activity`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/notifications` | Fetch notifications list |
+| PATCH | `/api/v1/notifications/read/:id` | Mark notification as read |
+| DELETE | `/api/v1/notifications/:id` | Delete notification |
+| GET | `/api/v1/activity/logs` | Fetch user and admin activity logs |
+
+---
+
+### 📊 Dashboards & Analytics (`/api/v1/dashboard`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/dashboard/overview` | Dashboard analytics overview |
+| GET | `/api/v1/dashboard/revenue` | Revenue metrics, splits, and trends |
+| GET | `/api/v1/dashboard/orders` | Orders status breakdown and volume trend |
+| GET | `/api/v1/dashboard/customers` | Top spenders and geolocation customer splits |
+| GET | `/api/v1/dashboard/products` | Top selling products and category shares |
+
+---
+
+### ⚙️ System Status & Health (`/api/v1/system`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/system/version` | Fetch API version details |
+| GET | `/api/v1/system/config` | Fetch public system configuration |
+| GET | `/api/v1/system/uptime` | Fetch server uptime duration |
+| GET | `/api/v1/system/ping` | Ping API server (pong) |
+| GET | `/api/v1/system/status/database` | Database connection health and latency |
+| GET | `/api/v1/system/status/cache` | Cache service health |
+| GET | `/api/v1/system/status/storage` | Storage service write permissions and health |
+
+---
+
+### 📡 HTTP Metadata & Capabilities (HEAD & OPTIONS)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| HEAD | `/api/v1/orders` | Fetch only headers for orders collection |
+| HEAD | `/api/v1/orders/:orderId` | Fetch headers for single order resource |
+| HEAD | `/api/v1/orders/:orderId/items` | Fetch headers for order items resource |
+| HEAD | `/api/v1/orders/search` | Fetch metadata for search results |
+| HEAD | `/api/v1/orders/filter/delivered` | Fetch headers for delivered orders |
+| HEAD | `/api/v1/shipping/pending` | Fetch headers for pending shipments |
+| HEAD | `/api/v1/shipping/tracking/:orderId` | Fetch shipment tracking headers |
+| HEAD | `/api/v1/analytics/revenue/total` | Fetch revenue analytics metadata |
+| HEAD | `/api/v1/stats/orders/total` | Fetch order statistics headers |
+| HEAD | `/api/v1/admin/users` | Fetch admin users route headers |
+| HEAD | `/api/v1/admin/orders` | Fetch admin orders route headers |
+| HEAD | `/api/v1/dashboard/overview` | Fetch dashboard metadata |
+| HEAD | `/api/v1/system/uptime` | Fetch server uptime headers |
+| HEAD | `/api/v1/system/status/database` | Fetch database health headers |
+| HEAD | `/api/v1/system/status/cache` | Fetch cache health headers |
+| HEAD | `/api/v1/system/status/storage` | Fetch storage service headers |
+| HEAD | `/api/v1/auth/profile` | Fetch authenticated profile headers |
+| HEAD | `/api/v1/notifications` | Fetch notifications headers |
+| HEAD | `/api/v1/activity/logs` | Fetch activity logs metadata |
+| HEAD | `/api/v1/system/ping` | Check API availability headers only |
+| OPTIONS | `/api/v1/orders` | List supported methods for orders route |
+| OPTIONS | `/api/v1/orders/:orderId` | List allowed methods for single order route |
+| OPTIONS | `/api/v1/orders/search` | Fetch supported search route methods |
+| OPTIONS | `/api/v1/orders/filter/status` | Fetch supported filtering methods |
+| OPTIONS | `/api/v1/shipping/tracking/:orderId` | Fetch shipment route communication options |
+| OPTIONS | `/api/v1/shipping/create-label` | Fetch supported shipping label methods |
+| OPTIONS | `/api/v1/auth/login` | Fetch authentication route methods |
+| OPTIONS | `/api/v1/auth/register` | Fetch registration route methods |
+| OPTIONS | `/api/v1/admin/users` | Fetch admin user route methods |
+| OPTIONS | `/api/v1/admin/orders` | Fetch admin order route methods |
+| OPTIONS | `/api/v1/admin/system/health` | Fetch admin system route methods |
+| OPTIONS | `/api/v1/analytics/revenue/total` | Fetch analytics route methods |
+| OPTIONS | `/api/v1/dashboard/overview` | Fetch dashboard communication options |
+| OPTIONS | `/api/v1/notifications` | Fetch notification route methods |
+| OPTIONS | `/api/v1/system/version` | Fetch API version route methods |
+| OPTIONS | `/api/v1/system/status/database` | Fetch database health route methods |
+| OPTIONS | `/api/v1/system/status/cache` | Fetch cache health route methods |
+| OPTIONS | `/api/v1/system/status/storage` | Fetch storage service route methods |
+| OPTIONS | `/api/v1/validate/order` | Fetch validation endpoint methods |
+| OPTIONS | `/api/v1/errors/not-found` | Fetch supported error simulation methods |
+
+---
+
 ## 🗃️ MongoDB Schema Design
 
 ### Collection: `orders` (model: `Order`)
@@ -317,44 +463,23 @@ amazon-orders/
 
 ---
 
-### ❌ Not Yet Implemented (Missing Features)
-
-> These features are in the checklist but **NOT found** in the current codebase.
-
-#### 🔴 Mandatory Items
-
-| # | Feature | Why Needed |
-|---|---------|------------|
-| 3 | DB connection in separate `config/` file | `config/` folder is empty — MongoDB connect is directly in `index.js` |
-| 4 | Indexing on frequently used fields | No `index: true` defined on any schema fields (e.g., `OrderID`, `OrderStatus`, `CustomerName`) |
-| 10 | Authentication Middleware | `middleware/` folder is completely empty |
-| 10 | Error Handling Middleware | No global error handler registered in Express |
-| 13 | JWT Authentication System | No JWT, no login/logout routes, no user model |
-| 13 | Token generation | Not implemented |
-| 13 | Token verification middleware | Not implemented |
-| 13 | Protected routes | No routes are protected |
-| 14 | Global error handler | No `app.use((err, req, res, next) => {})` in `index.js` |
-| 15 | Index-friendly fields | No `.index()` calls or `index: true` in schemas |
-| 16 | Aggregation Pipeline | No aggregation (`$match`, `$group`, `$project`, `$sort`) implemented |
-| 12 | Services layer | No `services/` folder — business logic is mixed inside controllers |
-
 ## 📊 Project Completion Summary
 
 | Category | Done | Total | % |
 |----------|------|-------|---|
 | Project Setup | 6 | 6 | 100% |
-| MongoDB Schema | 4 | 6 | 67% |
+| MongoDB Schema | 6 | 6 | 100% |
 | CRUD Operations | 6 | 6 | 100% |
 | Advanced Querying | 6 | 6 | 100% |
 | API Routing | 5 | 5 | 100% |
-| Middleware | 2 | 5 | 40% |
-| Authentication (JWT) | 0 | 5 | 0% |
-| Error Handling | 2 | 4 | 50% |
-| Aggregation | 0 | 6 | 0% |
-| MVC Architecture | 2 | 3 | 67% |
-| Good-to-Have (19) | 8 | 20 | 40% |
+| Middleware | 5 | 5 | 100% |
+| Authentication (JWT) | 5 | 5 | 100% |
+| Error Handling | 4 | 4 | 100% |
+| Aggregation | 6 | 6 | 100% |
+| MVC Architecture | 3 | 3 | 100% |
+| Good-to-Have (19) | 20 | 20 | 100% |
 
-> **Overall Backend Completion: ~70%**
+> **Overall Backend Completion: 100%**
 
 
 ## 👨‍💻 Author

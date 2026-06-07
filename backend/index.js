@@ -37,6 +37,7 @@ const statsRoutes = require('./routes/statsRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
 const authRoutes      = require('./routes/authRoutes');
 const adminRoutes     = require('./routes/adminRoutes');
+const errorRoutes     = require('./routes/errorRoutes');
 const { performanceMiddleware } = require('./controllers/statsController');
 const { appendLog }   = require('./controllers/adminController');
 
@@ -54,6 +55,7 @@ app.use('/api/v1/stats', statsRoutes);                // Statistics routes
 app.use('/api/v1/shipping', shippingRoutes);           // Shipping & Delivery routes
 app.use('/api/v1/auth',     authRoutes);               // Authentication routes
 app.use('/api/v1/admin',    adminRoutes);              // Admin routes
+app.use('/api/v1/errors',   errorRoutes);              // Error simulation routes
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)

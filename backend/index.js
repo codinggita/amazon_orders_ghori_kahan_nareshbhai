@@ -9,13 +9,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// HEAD and OPTIONS route interceptors (must be before CORS to prevent preflight hijacking)
-const headOptionsRoutes = require('./routes/headOptionsRoutes');
-app.use('/api/v1', headOptionsRoutes);
-
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// HEAD and OPTIONS route interceptors (must be before CORS to prevent preflight hijacking)
+const headOptionsRoutes = require('./routes/headOptionsRoutes');
+app.use('/api/v1', headOptionsRoutes);
 
 // Custom Request Logger — also feeds /admin/system/logs
 app.use((req, res, next) => {

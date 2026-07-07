@@ -29,6 +29,26 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+// Google OAuth — sends Google profile + access_token to backend which verifies
+// it and returns the same JWT structure as a normal login.
+export const googleLogin = createAsyncThunk(
+  'auth/googleLogin',
+  async ({ googleId, email, name, emailVerified, accessToken: googleAccessToken }, { rejectWithValue }) => {
+    try {
+      const response = await API.post('/auth/google', {
+        googleId,
+        email,
+        name,
+        emailVerified,
+        accessToken: googleAccessToken,
+      });
+      return response.data; // { success, message, data: { user, accessToken, refreshToken, sessionId } }
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Google sign-in failed');
+    }
+  }
+);
+
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
@@ -43,7 +63,7 @@ export const loginUser = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logout',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState }) => {
     try {
       const { auth } = getState();
       if (auth.sessionId) {
@@ -126,6 +146,27 @@ const authSlice = createSlice({
         localStorage.setItem('refreshToken', action.payload.data.refreshToken);
       })
       .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Google Login
+      .addCase(googleLogin.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.data.user;
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
+        state.sessionId = action.payload.data.sessionId;
+
+        localStorage.setItem('user', JSON.stringify(action.payload.data.user));
+        localStorage.setItem('accessToken', action.payload.data.accessToken);
+        localStorage.setItem('refreshToken', action.payload.data.refreshToken);
+        localStorage.setItem('sessionId', action.payload.data.sessionId);
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       })

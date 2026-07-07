@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Helmet } from 'react-helmet-async';
-import { Formik, Form, Field } from 'formik';
+import { Formik, Form, Field, useFormikContext } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import ClearIcon from '@mui/icons-material/Clear';
-import FilterListIcon from '@mui/icons-material/FilterList';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -86,6 +85,28 @@ const OrderSchema = Yup.object().shape({
   SellerID: Yup.string().required('Seller ID is required'),
 });
 
+const TotalAmountCalculator = () => {
+  const { values, setFieldValue } = useFormikContext();
+  useEffect(() => {
+    const qty = parseInt(values.Quantity) || 0;
+    const price = parseFloat(values.UnitPrice) || 0;
+    const discount = parseFloat(values.Discount) || 0;
+    const tax = parseFloat(values.Tax) || 0;
+    const shipping = parseFloat(values.ShippingCost) || 0;
+    const computedTotal = (qty * price) - discount + tax + shipping;
+    setFieldValue('TotalAmount', computedTotal.toFixed(2));
+  }, [values.Quantity, values.UnitPrice, values.Discount, values.Tax, values.ShippingCost, setFieldValue]);
+  return null;
+};
+
+const FormProgressSaver = () => {
+  const { values } = useFormikContext();
+  useEffect(() => {
+    sessionStorage.setItem('orderFormProgress', JSON.stringify(values));
+  }, [values]);
+  return null;
+};
+
 export const Orders = () => {
   const dispatch = useDispatch();
   const {
@@ -110,7 +131,6 @@ export const Orders = () => {
   const [currentOrder, setCurrentOrder] = useState(null);
   const [invoiceData, setInvoiceData] = useState(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
-  const [actionDropdownOpen, setActionDropdownOpen] = useState(false);
   const [bulkStatusToUpdate, setBulkStatusToUpdate] = useState('Shipped');
 
   // Load orders and stats on load
@@ -133,7 +153,10 @@ export const Orders = () => {
 
   // Update local search input if global search query is cleared
   useEffect(() => {
-    setSearchInput(searchQuery);
+    const timer = setTimeout(() => {
+      setSearchInput(searchQuery);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   // Handle pagination changes
@@ -149,7 +172,7 @@ export const Orders = () => {
 
   // Sort cycles: '' -> 'key' -> '-key' -> ''
   const handleSortToggle = (field) => {
-    let nextSort = '';
+    let nextSort;
     if (sortKey === field) {
       nextSort = `-${field}`;
     } else if (sortKey === `-${field}`) {
@@ -199,6 +222,7 @@ export const Orders = () => {
     try {
       await dispatch(createOrder(values)).unwrap();
       toast.success('Order created successfully!');
+      sessionStorage.removeItem('orderFormProgress');
       setActiveModal(null);
       resetForm();
     } catch (err) {
@@ -293,7 +317,7 @@ export const Orders = () => {
       if (response.data.success) {
         setInvoiceData(response.data.data);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to load invoice');
       setActiveModal(null);
     } finally {
@@ -303,7 +327,6 @@ export const Orders = () => {
 
   // Bulk operation executor
   const handleBulkActionExecute = async (action) => {
-    setActionDropdownOpen(false);
     if (selectedOrders.length === 0) return;
 
     const actionText = {
@@ -343,46 +366,56 @@ export const Orders = () => {
   const getStatusClass = (status) => {
     const clean = (status || '').toLowerCase().trim();
     switch (clean) {
-      case 'delivered':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/30';
-      case 'shipped':
-        return 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-200/50 dark:border-sky-900/30';
-      case 'pending':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/30';
-      case 'cancelled':
-        return 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/30';
+      case 'delivered': return 'badge-delivered';
+      case 'shipped': return 'badge-shipped';
+      case 'pending': return 'badge-pending';
+      case 'cancelled': return 'badge-cancelled';
       case 'refunded':
-      case 'returned':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/30';
-      case 'archived':
-        return 'bg-slate-100 text-slate-800 dark:bg-slate-800/60 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/30';
-      default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-400';
+      case 'returned': return 'badge-refunded';
+      case 'archived': return 'badge-archived';
+      default: return 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
     }
   };
 
   return (
     <>
       <Helmet>
-        <title>Amazon Orders Listing & CRUD | Admin Dashboard</title>
-        <meta name="description" content="Manage customer orders, perform pagination, search, sort, filters, and standard MongoDB CRUD." />
+        <title>Amazon Orders Database | Admin Dashboard</title>
+        <meta name="description" content="Manage customer orders, perform pagination, search, sort, filters, and standard MongoDB CRUD transactions." />
+        <meta property="og:title" content="Amazon Orders Database | Admin Dashboard" />
+        <meta property="og:description" content="Transactional database workspace for managing and processing customer orders." />
+        <meta property="og:type" content="website" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "name": "Orders Database",
+            "description": "Dashboard workspace for managing and auditing customer order histories.",
+            "isPartOf": {
+              "@type": "WebApplication",
+              "name": "Amazon Orders Dashboard",
+              "url": "http://localhost:5173"
+            }
+          })}
+        </script>
       </Helmet>
 
       <div className="space-y-6 max-w-[1600px] mx-auto pb-12">
         
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-slide-up">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white">
               Orders Database
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Perform high-level aggregate listings, custom filters, pagination, and transactional CRUD.
+            <p className="text-sm text-slate-500 mt-1">
+              Aggregate listings, custom filters, pagination, and transactional CRUD operations.
             </p>
           </div>
           <button
             onClick={() => {
-              setCurrentOrder({
+              const savedProgress = sessionStorage.getItem('orderFormProgress');
+              setCurrentOrder(savedProgress ? JSON.parse(savedProgress) : {
                 OrderID: `AMZ-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
                 CustomerName: '',
                 CustomerID: `CUST-${Math.floor(10000 + Math.random() * 90000)}`,
@@ -405,152 +438,96 @@ export const Orders = () => {
               });
               setActiveModal('create');
             }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm rounded-2xl shadow-lg shadow-amber-500/25 transition-all focus:outline-none"
+            className="btn-amber flex items-center gap-2 px-5 py-2.5 text-sm rounded-xl"
           >
-            <AddIcon className="w-4 h-4" /> Add Order
+            <AddIcon style={{ fontSize: 18 }} /> Add Order
           </button>
         </div>
 
-        {/* KPI / Dashboard Summary Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm flex items-center gap-4">
-            <div className="p-4 bg-amber-500/10 text-amber-500 rounded-2xl shrink-0">
-              <ShoppingCartIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider">Total Sales</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">
-                {stats.metrics?.totalOrders || 0}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm flex items-center gap-4">
-            <div className="p-4 bg-emerald-500/10 text-emerald-500 rounded-2xl shrink-0">
-              <AttachMoneyIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider">Total Revenue</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">
-                {formatCurrency(stats.metrics?.totalRevenue || 0)}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm flex items-center gap-4">
-            <div className="p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl shrink-0">
-              <ShoppingBagIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider">Average Order</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mt-1">
-                {formatCurrency(stats.metrics?.avgOrderValue || 0)}
-              </h3>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl shadow-sm flex items-center gap-4">
-            <div className="p-4 bg-sky-500/10 text-sky-500 rounded-2xl shrink-0">
-              <GroupIcon className="w-7 h-7" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider">Active Statuses</p>
-              <div className="flex gap-2 mt-1.5 flex-wrap">
-                {stats.statusDistribution?.slice(0, 3).map((item) => (
-                  <span key={item.status} className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 border border-slate-200/50 dark:border-slate-700/50">
-                    {item.status}: {item.count}
-                  </span>
-                ))}
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { icon: <ShoppingCartIcon style={{ fontSize: 24 }} />, label: 'Total Sales', value: stats.metrics?.totalOrders || 0, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+            { icon: <AttachMoneyIcon style={{ fontSize: 24 }} />, label: 'Total Revenue', value: formatCurrency(stats.metrics?.totalRevenue || 0), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+            { icon: <ShoppingBagIcon style={{ fontSize: 24 }} />, label: 'Average Order', value: formatCurrency(stats.metrics?.avgOrderValue || 0), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+            { icon: <GroupIcon style={{ fontSize: 24 }} />, label: 'Status Breakdown', value: null, statuses: stats.statusDistribution?.slice(0, 3), color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+          ].map((kpi, i) => (
+            <div key={i} className="premium-card p-5 flex items-center gap-4 animate-slide-up" style={{ animationDelay: `${i * 60}ms` }}>
+              <div className={`p-3 rounded-xl border ${kpi.color} shrink-0`}>{kpi.icon}</div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{kpi.label}</p>
+                {kpi.value !== null ? (
+                  <p className="text-2xl font-black text-slate-800 dark:text-white mt-0.5 tabular-nums">{kpi.value}</p>
+                ) : (
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    {kpi.statuses?.map((item) => (
+                      <span key={item.status} className={`text-[10px] font-bold px-2 py-0.5 rounded-lg badge-${(item.status || '').toLowerCase()}`}>
+                        {item.status}: {item.count}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Toolbar: Search, Filters, Bulk Actions */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl shadow-sm space-y-4">
+        <div className="premium-card p-4 space-y-3 animate-slide-up">
           <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
             {/* Search Input */}
             <div className="relative flex-1 max-w-lg">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-                <SearchIcon className="w-5 h-5" />
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <SearchIcon style={{ fontSize: 18 }} />
               </span>
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search by Order ID, Customer Name, Product, Brand..."
-                className="w-full pl-11 pr-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm transition-all"
+                className="input-dark w-full pl-10 pr-4 py-2.5 text-sm rounded-xl"
               />
               {searchInput && (
                 <button
                   onClick={() => setSearchInput('')}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-450 hover:text-slate-650 dark:hover:text-slate-250"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  <ClearIcon className="w-4 h-4" />
+                  <ClearIcon style={{ fontSize: 16 }} />
                 </button>
               )}
             </div>
 
             {/* Quick Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Status Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl">
-                <span className="text-xs text-slate-400 font-medium">Status:</span>
-                <select
-                  value={filterType === 'status' ? filterValue : ''}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer border-none p-0 pr-6"
-                >
-                  <option value="">All</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Refunded">Refunded</option>
-                  <option value="Archived">Archived</option>
-                </select>
-              </div>
-
-              {/* Payment Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl">
-                <span className="text-xs text-slate-400 font-medium">Payment:</span>
-                <select
-                  value={filterType === 'payment' ? filterValue : ''}
-                  onChange={(e) => handleFilterChange('payment', e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer border-none p-0 pr-6"
-                >
-                  <option value="">All</option>
-                  <option value="Credit Card">Credit Card</option>
-                  <option value="Debit Card">Debit Card</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Net Banking">Net Banking</option>
-                  <option value="Cash on Delivery">Cash on Delivery</option>
-                </select>
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-2xl">
-                <span className="text-xs text-slate-400 font-medium">Category:</span>
-                <select
-                  value={filterType === 'category' ? filterValue : ''}
-                  onChange={(e) => handleFilterChange('category', e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer border-none p-0 pr-6"
-                >
-                  <option value="">All</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Clothing">Clothing</option>
-                  <option value="Home & Kitchen">Home & Kitchen</option>
-                  <option value="Beauty">Beauty</option>
-                  <option value="Sports">Sports</option>
-                </select>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                {
+                  label: 'Status', type: 'status', opts: ['', 'Pending', 'Shipped', 'Delivered', 'Cancelled', 'Refunded', 'Archived'],
+                },
+                {
+                  label: 'Payment', type: 'payment', opts: ['', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Cash on Delivery'],
+                },
+                {
+                  label: 'Category', type: 'category', opts: ['', 'Electronics', 'Clothing', 'Home & Kitchen', 'Beauty', 'Sports'],
+                },
+              ].map((f) => (
+                <div key={f.type} className="flex items-center gap-1.5 bg-black/10 dark:bg-black/20 border border-white/[0.06] px-3 py-1.5 rounded-xl">
+                  <span className="text-[11px] text-slate-500 font-semibold">{f.label}:</span>
+                  <select
+                    value={filterType === f.type ? filterValue : ''}
+                    onChange={(e) => handleFilterChange(f.type, e.target.value)}
+                    className="bg-transparent text-[11px] font-bold text-slate-400 dark:text-slate-400 focus:outline-none cursor-pointer border-none p-0 pr-5"
+                  >
+                    {f.opts.map((o) => <option key={o} value={o} className="bg-slate-900">{o || 'All'}</option>)}
+                  </select>
+                </div>
+              ))}
 
               {(searchQuery || sortKey || filterType) && (
                 <button
                   onClick={handleClearAll}
-                  className="flex items-center gap-1.5 text-xs text-rose-500 hover:text-rose-600 font-semibold px-3 py-2 border border-rose-200 dark:border-rose-950/40 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-2xl transition-all"
+                  className="flex items-center gap-1 text-[11px] text-rose-400 hover:text-rose-300 font-bold px-3 py-1.5 border border-rose-500/20 hover:bg-rose-500/[0.07] rounded-xl transition-all"
                 >
-                  <ClearIcon className="w-3.5 h-3.5" /> Clear Filters
+                  <ClearIcon style={{ fontSize: 14 }} /> Clear
                 </button>
               )}
             </div>
@@ -558,58 +535,39 @@ export const Orders = () => {
 
           {/* Bulk Actions Bar */}
           {selectedOrders.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-amber-500/10 dark:bg-amber-950/20 border border-amber-250 dark:border-amber-900/40 rounded-2xl animate-in fade-in duration-200 gap-3">
-              <span className="text-xs font-bold text-amber-800 dark:text-amber-400">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-xl animate-slide-up gap-3">
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                 {selectedOrders.length} order(s) selected
               </span>
-
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-slate-450 dark:text-slate-400">Bulk status:</span>
+                <span className="text-[11px] text-slate-500">Bulk status:</span>
                 <select
                   value={bulkStatusToUpdate}
                   onChange={(e) => setBulkStatusToUpdate(e.target.value)}
-                  className="text-xs font-semibold px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer"
+                  className="text-[11px] font-bold px-2 py-1.5 rounded-lg bg-black/20 border border-white/[0.08] text-slate-300 focus:outline-none cursor-pointer"
                 >
-                  <option value="Pending">Pending</option>
-                  <option value="Shipped">Shipped</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
+                  <option value="Pending" className="bg-slate-900">Pending</option>
+                  <option value="Shipped" className="bg-slate-900">Shipped</option>
+                  <option value="Delivered" className="bg-slate-900">Delivered</option>
+                  <option value="Cancelled" className="bg-slate-900">Cancelled</option>
                 </select>
-
-                <button
-                  disabled={bulkLoading}
-                  onClick={() => handleBulkActionExecute('status')}
-                  className="text-xs font-bold px-3.5 py-1.5 bg-slate-900 dark:bg-slate-805 hover:bg-slate-800 text-white rounded-xl transition-all"
-                >
+                <button disabled={bulkLoading} onClick={() => handleBulkActionExecute('status')}
+                  className="btn-amber text-[11px] px-3 py-1.5 rounded-lg">
                   Apply
                 </button>
-
-                <div className="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-                <button
-                  disabled={bulkLoading}
-                  onClick={() => handleBulkActionExecute('archive')}
-                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 border border-slate-350 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
-                  title="Archive Selected"
-                >
-                  <ArchiveIcon className="w-3.5 h-3.5" /> Archive
+                <div className="h-4 w-px bg-white/[0.08]" />
+                <button disabled={bulkLoading} onClick={() => handleBulkActionExecute('archive')}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 border border-white/[0.08] hover:bg-white/[0.05] text-slate-400 rounded-lg transition-all">
+                  <ArchiveIcon style={{ fontSize: 14 }} /> Archive
                 </button>
-
-                <button
-                  disabled={bulkLoading}
-                  onClick={() => handleBulkActionExecute('restore')}
-                  className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 border border-slate-350 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl transition-all"
-                  title="Restore Selected"
-                >
-                  <UnarchiveIcon className="w-3.5 h-3.5" /> Restore
+                <button disabled={bulkLoading} onClick={() => handleBulkActionExecute('restore')}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 border border-white/[0.08] hover:bg-white/[0.05] text-slate-400 rounded-lg transition-all">
+                  <UnarchiveIcon style={{ fontSize: 14 }} /> Restore
                 </button>
-
-                <button
-                  disabled={bulkLoading}
-                  onClick={() => handleBulkActionExecute('delete')}
-                  className="flex items-center gap-1 text-xs font-bold px-3.5 py-1.5 bg-rose-650 hover:bg-rose-700 text-white rounded-xl transition-all"
-                >
-                  <DeleteIcon className="w-3.5 h-3.5" /> Bulk Delete
+                <button disabled={bulkLoading} onClick={() => handleBulkActionExecute('delete')}
+                  className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/25 text-rose-400 rounded-lg transition-all">
+                  <DeleteIcon style={{ fontSize: 14 }} /> Delete
                 </button>
               </div>
             </div>
@@ -617,7 +575,7 @@ export const Orders = () => {
         </div>
 
         {/* Database Table view */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+        <div className="premium-card overflow-hidden animate-slide-up">
           <div className="overflow-x-auto">
             <table className="w-full table-auto text-left border-collapse">
               <thead>
@@ -913,22 +871,11 @@ export const Orders = () => {
                 validationSchema={OrderSchema}
                 onSubmit={activeModal === 'create' ? handleCreateSubmit : handleEditSubmit}
               >
-                {({ values, errors, touched, setFieldValue, isSubmitting }) => {
-                  
-                  // Auto-calculate Total Amount in real-time when inputs change
-                  // Formula: total = (qty * price) - discount + tax + shipping
-                  React.useEffect(() => {
-                    const qty = parseInt(values.Quantity) || 0;
-                    const price = parseFloat(values.UnitPrice) || 0;
-                    const discount = parseFloat(values.Discount) || 0;
-                    const tax = parseFloat(values.Tax) || 0;
-                    const shipping = parseFloat(values.ShippingCost) || 0;
-                    const computedTotal = (qty * price) - discount + tax + shipping;
-                    setFieldValue('TotalAmount', computedTotal.toFixed(2));
-                  }, [values.Quantity, values.UnitPrice, values.Discount, values.Tax, values.ShippingCost, setFieldValue]);
-
+                {({ errors, touched, isSubmitting }) => {
                   return (
                     <Form className="space-y-6">
+                      <TotalAmountCalculator />
+                      {activeModal === 'create' && <FormProgressSaver />}
                       
                       {/* Grid Sections */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">

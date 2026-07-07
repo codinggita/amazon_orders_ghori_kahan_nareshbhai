@@ -13,7 +13,9 @@ const sessionSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   name:              { type: String, required: true, trim: true },
   email:             { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password:          { type: String, required: true, minlength: 6, select: false },
+  password:          { type: String, minlength: 6, select: false },    // optional — Google OAuth users have no password
+  googleId:          { type: String, select: false },                   // Google OAuth subject ID
+  authProvider:      { type: String, enum: ['local', 'google'], default: 'local' },
   role:              { type: String, enum: ['user', 'admin'], default: 'user' },
   isEmailVerified:   { type: Boolean, default: false },
   emailVerifyToken:  { type: String, select: false },

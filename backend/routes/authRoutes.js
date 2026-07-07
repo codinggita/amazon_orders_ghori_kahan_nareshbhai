@@ -1,6 +1,8 @@
 const express = require('express');
 const router  = express.Router();
 
+const { googleAuth } = require('../controllers/googleAuthController');
+
 const {
   register,
   login,
@@ -22,6 +24,9 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 
 // ─── Public Routes (no token needed) ─────────────────────────────────────────
+
+// POST /api/v1/auth/google  — Google OAuth (find-or-create user, returns JWT)
+router.post('/google', googleAuth);
 
 // POST /api/v1/auth/register
 router.post('/register', register);

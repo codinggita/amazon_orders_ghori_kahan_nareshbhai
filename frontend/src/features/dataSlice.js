@@ -18,10 +18,10 @@ const initialState = {
     statusDistribution: [],
     recentOrders: []
   },
-  searchQuery: '',
-  sortKey: '',
-  filterType: '', // 'status', 'payment', 'category', 'brand', etc.
-  filterValue: '', // value corresponding to filter type
+  searchQuery: sessionStorage.getItem('temp_searchQuery') || '',
+  sortKey: sessionStorage.getItem('temp_sortKey') || '',
+  filterType: sessionStorage.getItem('temp_filterType') || '', // 'status', 'payment', 'category', 'brand', etc.
+  filterValue: sessionStorage.getItem('temp_filterValue') || '', // value corresponding to filter type
   isStatsLoading: false,
   bulkLoading: false
 };
@@ -182,16 +182,23 @@ const dataSlice = createSlice({
       state.filterType = ''; // Clear other filters
       state.filterValue = '';
       state.page = 1;
+      sessionStorage.setItem('temp_searchQuery', action.payload);
+      sessionStorage.removeItem('temp_filterType');
+      sessionStorage.removeItem('temp_filterValue');
     },
     setSortKey: (state, action) => {
       state.sortKey = action.payload;
       state.page = 1;
+      sessionStorage.setItem('temp_sortKey', action.payload);
     },
     setFilter: (state, action) => {
       state.filterType = action.payload.type;
       state.filterValue = action.payload.value;
       state.searchQuery = ''; // Clear search when filter is applied
       state.page = 1;
+      sessionStorage.setItem('temp_filterType', action.payload.type);
+      sessionStorage.setItem('temp_filterValue', action.payload.value);
+      sessionStorage.removeItem('temp_searchQuery');
     },
     clearFilters: (state) => {
       state.searchQuery = '';
@@ -199,6 +206,10 @@ const dataSlice = createSlice({
       state.filterType = '';
       state.filterValue = '';
       state.page = 1;
+      sessionStorage.removeItem('temp_searchQuery');
+      sessionStorage.removeItem('temp_sortKey');
+      sessionStorage.removeItem('temp_filterType');
+      sessionStorage.removeItem('temp_filterValue');
     },
     clearDataError: (state) => {
       state.error = null;

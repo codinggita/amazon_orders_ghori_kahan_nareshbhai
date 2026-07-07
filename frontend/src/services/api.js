@@ -104,6 +104,16 @@ API.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
+    // Basic Retry Mechanism for Transient Server / Network Failures
+    if (error.response?.status >= 500 || error.message === 'Network Error') {
+      originalRequest._retryCount = originalRequest._retryCount || 0;
+      if (originalRequest._retryCount < 2) {
+        originalRequest._retryCount += 1;
+        console.warn(`[API] Transient failure. Retrying ${originalRequest.url} (Attempt ${originalRequest._retryCount}/2)...`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return API(originalRequest);
+      }
+    }
 
     return Promise.reject(error);
   }
